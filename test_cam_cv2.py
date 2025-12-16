@@ -17,18 +17,18 @@ while True:
         break
 
     #rimuove effetto specchio con 1
-    frame = cv2.flip(frame, 1)
+    frame = cv.flip(frame, 1)
 
     #mostra la fotocamera
-    cv2.imshow("Webcam", frame)
+    cv.imshow("Webcam", frame)
 
     #aspetta il tasto q per uscire
     #0xFF serve per compatibilità di sistema operativo
     #27 = ESC
-    key = cv2.waitKey(1) & 0xFF
+    key = cv.waitKey(1) & 0xFF
     if key == ord('q') or key == 27:
         break
 
 #rilascia la webcam e chiude le finestre create
 cap.release()
-cv2.destroyAllWindows()
+cv.destroyAllWindows()
