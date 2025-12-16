@@ -13,3 +13,4 @@ Problemi riscontrati:
 1 - Installazione delle librerie e compatibilità tra mac e windows [Ti odiamo Giorgio] Risolto
 2 - Riscontrato e risolto il problem dei 2520 file nel RPS folder -> train ( siamo idioti ) Risolto
 3 - Conflitto su come fare un resize delle immagini Risolto
+4 - Riscontrato problema con ImageFolder -> Da fixare
