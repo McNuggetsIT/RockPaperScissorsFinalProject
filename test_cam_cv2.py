@@ -24,7 +24,9 @@ while True:
 
     #aspetta il tasto q per uscire
     #0xFF serve per compatibilità di sistema operativo
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    #27 = ESC
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q') or key == 27:
         break
 
 #rilascia la webcam e chiude le finestre create
