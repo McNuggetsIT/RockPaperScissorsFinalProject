@@ -15,6 +15,8 @@ import numpy as np
 import sys
 from tqdm.notebook import tqdm
 import PIL as pl
+
+from load_image import load_images_from_folders
 test_dir = "Rock-Paper-Scissors/test"
 train_dir = "Rock-Paper-Scissors/train"
 val_dir = "Rock-Paper-Scissors/validation"
@@ -35,7 +37,9 @@ class RpsClassifier(Dataset):
     
 dataset = RpsClassifier(data_dir= train_dir)
 
-print(len(dataset))
+image, label = dataset[10]
 
-image, label = dataset[65]
-print(label)
+plt.imshow(image)
+plt.title(dataset.classes[label])
+plt.axis("off")
+plt.show()
