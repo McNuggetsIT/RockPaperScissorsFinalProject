@@ -24,7 +24,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
-from load_image import *
+import torchvision.transforms as transforms
+from torchvision.datasets import ImageFolder
 
 
 # Dataset personalizzato per PyTorch
@@ -53,20 +54,38 @@ class NumpyDataset(Dataset):
             img = torch.from_numpy(img).permute(2,0,1)  
 
         return img, label   # Restituisce la coppia (immagine, label)
+    
+class RpsClassifier(Dataset):
+    def __init__(self, data_dir, transform=None):
+        self.data = ImageFolder(data_dir, transform=transform)
+    
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        return self.data[idx]
+    
+    @property
+    def classes(self):
+        return self.data.classes
+    
+transform = transforms.Compose([
+    transforms.Resize((150, 150)),
+    transforms.ToTensor(),
+    transforms.Normalize(
+        mean=[0.5, 0.5, 0.5],
+        std=[0.5, 0.5, 0.5]
+    )
+])
 
 test_dir = "Rock-Paper-Scissors/test"
 train_dir = "Rock-Paper-Scissors/train"
 val_dir = "Rock-Paper-Scissors/validation"
 
-# Caricamento dataset
-train_images, train_labels, class_names = load_images_from_folders(train_dir)
-val_images, val_labels, _ = load_images_from_folders(val_dir)
-test_images, test_labels, _ = load_images_from_folders(test_dir)
-
-# Creazione dei Dataset PyTorch usando le immagini caricate
-train_dataset = NumpyDataset(train_images, train_labels)
-val_dataset = NumpyDataset(val_images, val_labels)
-test_dataset = NumpyDataset(test_images, test_labels)
+# Creazione dei dataset usando RpsClassifier
+train_dataset = RpsClassifier(train_dir, transform=transform)
+val_dataset = RpsClassifier(val_dir, transform=transform)
+test_dataset = RpsClassifier(test_dir, transform=transform)
 
 # Creazione dei DataLoader: permettono di iterare sui dataset a batch
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)  # shuffle=True mischia i dati a ogni epoca
