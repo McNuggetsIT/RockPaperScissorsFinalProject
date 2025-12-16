@@ -3,6 +3,11 @@ Test cam -> fatto
 Brench -> fatto
 Dataset -> Fatto
 Import delle cartelle -> fatto
-Scelta del modello -> ?? Dubbio tra keras e pyTorch (forse pyTorch) Da fare
+Scelta del modello -> Pythorc Fatto
+Scrittura del modello -> Fare
 Implementare CNN -> Da fare
 Salvataggio del training -> Da fare
+
+
+Problemi riscontrati:
+Installazione delle librerie e compatibilità tra mac e windows [Ti odiamo Giorgio]
