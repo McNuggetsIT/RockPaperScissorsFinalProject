@@ -8,9 +8,12 @@ def load_images_from_folders(root_dir, target_size=(300,300)):
     images = []
     #indici numerici delle classi, sarà usato come target dall'algoritmo
     labels = []
-    #nome cartella che indicano le classi
+    #nome cartella che indicano le classi, ignora le cartelle nascoste
     #sorted garantisce l'ordine deterministico
-    class_names = sorted(os.listdir(root_dir))
+    class_names = sorted([
+        d for d in os.listdir(root_dir)
+        if os.path.isdir(os.path.join(root_dir, d)) and not d.startswith(".")
+    ])
 
     for label, class_name in enumerate(class_names):
         #costruisce il path delle classi
