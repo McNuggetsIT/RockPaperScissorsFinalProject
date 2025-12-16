@@ -1,0 +1,19 @@
+Dataset
+
+Il dataset utilizzato per l’addestramento del modello di classificazione Rock–Paper–Scissors è stato scaricato dalla piattaforma Kaggle.
+È stato scelto perché già ben organizzato e perché le immagini mostrano in modo chiaro i tre gesti della mano, risultando adatto a un primo approccio al riconoscimento di immagini tramite Deep Learning.
+
+Il dataset comprende tre classi:
+
+rock: mano chiusa a pugno
+
+paper: mano completamente aperta
+
+scissors: mano con indice e medio estesi
+
+Ogni immagine appartiene a una sola classe.
+Le immagini sono suddivise in cartelle separate per le fasi di addestramento, validazione e test, permettendo una gestione semplice e ordinata del processo di training del modello.
+Una caratteristica importante del dataset è che tutte le immagini presentano uno sfondo bianco uniforme. Questo rende il dataset pulito e facile da utilizzare, ma può rappresentare una limitazione quando il modello viene applicato in contesti reali.
+Infatti, l’utilizzo di uno sfondo sempre uguale può portare il modello a imparare informazioni legate allo sfondo invece che concentrarsi solo sulla forma della mano. Di conseguenza, il modello può ottenere risultati molto buoni durante la fase di addestramento e validazione, ma avere difficoltà quando viene utilizzato con immagini acquisite tramite webcam, dove lo sfondo è variabile.
+Questa differenza tra i dati usati per l’addestramento e quelli utilizzati in fase di utilizzo reale è nota come domain shift.
+Nel contesto di questo progetto, tali limitazioni sono state analizzate a livello teorico, ma non sono ancora state risolte a livello implementativo. Sono tuttavia state individuate alcune possibili strategie di miglioramento, che potranno essere applicate in sviluppi futuri del progetto.
