@@ -1,8 +1,8 @@
-import cv2
+import cv2 as cv
 
 #avvia la telecamera
 #0 indica la fotocamera predenfinita
-cap = cv2.VideoCapture(0)
+cap = cv.VideoCapture(0)
 
 #errore se non riesce ad aprire la telecamera
 if not cap.isOpened():
