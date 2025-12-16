@@ -33,7 +33,7 @@ counters = {cls: len(os.listdir(os.path.join(DATA_DIR, cls)))
             for cls in CLASSES.values()}
 
 # LOOP PER CATTURARE IMMAGINI FINO A CHE NON SI ESCE 
-TODO#RACCOLTA IMMAGINI CONTINUATIVE PER 5 MIN PER ARRICCHIRE IL DS
+# TODO: RACCOLTA IMMAGINI CONTINUATIVE PER 5 MIN PER ARRICCHIRE IL DS
 
 while True:
     ret, frame = cap.read()
