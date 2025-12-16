@@ -1,0 +1,8 @@
+Obbietivi:
+Test cam -> fatto
+Brench -> fatto
+Dataset -> Fatto
+Import delle cartelle -> fatto
+Scelta del modello -> ?? Dubbio tra keras e pyTorch (forse pyTorch) Da fare
+Implementare CNN -> Da fare
+Salvataggio del training -> Da fare
