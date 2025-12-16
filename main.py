@@ -17,9 +17,19 @@ from tqdm.notebook import tqdm
 import PIL as pl
 
 from load_image import load_images_from_folders
+
 test_dir = "Rock-Paper-Scissors/test"
 train_dir = "Rock-Paper-Scissors/train"
 val_dir = "Rock-Paper-Scissors/validation"
+
+transform = transforms.Compose([
+    transforms.Resize((150, 150)),
+    transforms.ToTensor(),
+    transforms.Normalize(
+        mean=[0.5, 0.5, 0.5],
+        std=[0.5, 0.5, 0.5]
+    )
+])
 
 class RpsClassifier(Dataset):
     def __init__(self, data_dir, transform=None):
@@ -35,11 +45,27 @@ class RpsClassifier(Dataset):
     def classes(self):
         return self.data.classes
     
-dataset = RpsClassifier(data_dir= train_dir)
+train_dataset = RpsClassifier(
+    data_dir=train_dir,
+    transform=transform
+)    
 
-image, label = dataset[10]
+dataset = RpsClassifier(data_dir=train_dir, transform=transform)
+dataset_test = RpsClassifier(data_dir=test_dir, transform=transform)
+dataset_validation = RpsClassifier(data_dir=val_dir, transform=transform)
 
-plt.imshow(image)
-plt.title(dataset.classes[label])
+# Visualizza un esempio
+image, label = train_dataset[10]
+
+# Denormalizza per mostrare con matplotlib
+img = image * 0.5 + 0.5
+img = img.permute(1, 2, 0)
+
+plt.imshow(img)
+plt.title(train_dataset.classes[label])
 plt.axis("off")
 plt.show()
+
+
+target_to_class = {v: k for k, v in ImageFolder(dataset).class_to_idx.items()}
+print(target_to_class)
