@@ -1,0 +1,32 @@
+import cv2
+
+#avvia la telecamera
+#0 indica la fotocamera predenfinita
+cap = cv2.VideoCapture(0)
+
+#errore se non riesce ad aprire la telecamera
+if not cap.isOpened():
+    print("Errore apertura camera")
+    exit()
+
+while True:
+    #ret indica se il frame è stato letto correttamente
+    #frame sarà il frame che conterrà l'immagine
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    #rimuove effetto specchio con 1
+    frame = cv2.flip(frame, 1)
+
+    #mostra la fotocamera
+    cv2.imshow("Webcam", frame)
+
+    #aspetta il tasto q per uscire
+    #0xFF serve per compatibilità di sistema operativo
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+#rilascia la webcam e chiude le finestre create
+cap.release()
+cv2.destroyAllWindows()
