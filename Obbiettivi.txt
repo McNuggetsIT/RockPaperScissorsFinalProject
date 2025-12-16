@@ -10,4 +10,5 @@ Salvataggio del training -> Da fare
 
 
 Problemi riscontrati:
-Installazione delle librerie e compatibilità tra mac e windows [Ti odiamo Giorgio]
+1 - Installazione delle librerie e compatibilità tra mac e windows [Ti odiamo Giorgio] Risolto
+2 - Riscontrato e risolto il problem dei 2520 file nel RPS folder -> train ( siamo idioti ) Risolto
