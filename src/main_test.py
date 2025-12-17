@@ -91,6 +91,7 @@ while True:
             counters[active_class] < MAX_IMAGES
         ):
             counters[active_class] += 1
+            
             filename = f"{active_class}_{counters[active_class]}.png"
             path = os.path.join(DATA_DIR, active_class, filename)
             cv2.imwrite(path, frame)
