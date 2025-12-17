@@ -5,3 +5,4 @@ Problemi riscontrati:
 4 - Riscontrato problema con ImageFolder -> RISOLTO
 5 - Giorgio ha un dispositivo di merda. -> RISOLTO -> Tutto quello che funziona a lui non va a noi. Bastardo
 6- Probabile errore di confusione dato dalla differenza tra il train 
+7 - Riscontrato problema con l'aggiunta del nuovo dataset. -> Non risolto
