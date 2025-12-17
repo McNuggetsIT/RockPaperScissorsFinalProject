@@ -5,11 +5,12 @@ import random
 from torchvision import transforms
 import os
 import time
+from collections import deque
 
 # =========================
 # PARAMETRI
 # =========================
-IMG_SIZE = 64
+IMG_SIZE = 128
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 CLASSES = ["rock", "paper", "scissors"]
 
@@ -33,7 +34,7 @@ class RPSNet(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(2),
             nn.Flatten(),
-            nn.Linear(64 * 14 * 14, 128),
+            nn.Linear(64 * 30 * 30, 128),
             nn.ReLU(),
             nn.Linear(128, 3)
         )
@@ -49,12 +50,13 @@ model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
 model.eval()
 
 # =========================
-# PREPROCESSING
+# PREPROCESSING (UGUALE AL TRAINING)
 # =========================
 transform = transforms.Compose([
     transforms.ToPILImage(),
     transforms.Resize((IMG_SIZE, IMG_SIZE)),
-    transforms.ToTensor()
+    transforms.ToTensor(),
+    transforms.Normalize([0.5,0.5,0.5],[0.5,0.5,0.5])
 ])
 
 # =========================
@@ -70,7 +72,6 @@ def decide_winner(player, pc):
     ):
         return "HAI VINTO"
     return "HAI PERSO"
-
 
 def draw_text(img, text, pos, scale=1, color=(255,255,255), thickness=2):
     cv2.putText(img, text, pos,
@@ -100,6 +101,9 @@ countdown_start = None
 locked_player_move = None
 player_move = "?"
 
+# BUFFER PER STABILIZZAZIONE
+pred_buffer = deque(maxlen=5)
+
 # =========================
 # LOOP DI GIOCO
 # =========================
@@ -118,16 +122,33 @@ while True:
         cy - size // 2 : cy + size // 2,
         cx - size // 2 : cx + size // 2
     ]
+# --- PREPROCESSING ROBUSTO PER WEBCAM ---
+    gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
-    roi_rgb = cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)
+    _, thresh = cv2.threshold(
+        gray, 0, 255,
+        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    )
+
+    # Debug (lascialo acceso la prima volta)
+    cv2.imshow("HAND MASK", thresh)
+
+    roi_rgb = cv2.cvtColor(thresh, cv2.COLOR_GRAY2RGB)
     img = transform(roi_rgb).unsqueeze(0).to(DEVICE)
 
-    # ---------- PREDIZIONE (SOLO SE NON COUNTDOWN) ----------
+
+    img = transform(roi_rgb).unsqueeze(0).to(DEVICE)
+
+    # ---------- PREDIZIONE STABILIZZATA ----------
     if countdown == 0:
         with torch.no_grad():
             outputs = model(img)
             pred = torch.argmax(outputs, dim=1).item()
-            player_move = CLASSES[pred]
+            raw_move = CLASSES[pred]
+
+        pred_buffer.append(raw_move)
+        player_move = max(set(pred_buffer), key=pred_buffer.count)
 
     # ---------- INPUT ----------
     key = cv2.waitKey(1) & 0xFF
@@ -137,7 +158,8 @@ while True:
         countdown_start = time.time()
         pc_move = None
         result = ""
-        locked_player_move = None
+        locked_player_move = player_move   # 🔒 blocca subito
+        pred_buffer.clear()                # reset buffer
 
     if key == ord("q"):
         break
@@ -152,8 +174,7 @@ while True:
                   (w//2 - 30, h//2),
                   scale=4, color=(0,0,255), thickness=4)
 
-        if countdown == 0 and locked_player_move is None:
-            locked_player_move = player_move
+        if countdown == 0:
             pc_move = random.choice(CLASSES)
             result = decide_winner(locked_player_move, pc_move)
 
