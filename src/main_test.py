@@ -3,10 +3,13 @@ import os
 import time
 
 # =========================
-# DEFINISCO I PATH
+# PARAMETRI
 # =========================
+MAX_IMAGES = 200        # immagini per classe
+CAPTURE_DELAY = 0.5    # secondi tra uno scatto e l'altro
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(BASE_DIR, "Rock-Paper-Scissors", "testWebCam")
+DATA_DIR = os.path.join(BASE_DIR, "my_dataset", "train")
 
 CLASSES = {
     "r": "rock",
@@ -14,27 +17,32 @@ CLASSES = {
     "s": "scissors"
 }
 
-# crea le cartelle se non esistono
+# crea cartelle
 for cls in CLASSES.values():
     os.makedirs(os.path.join(DATA_DIR, cls), exist_ok=True)
 
-# WEBCAM  
+# =========================
+# WEBCAM
+# =========================
 cap = cv2.VideoCapture(0)
-
 if not cap.isOpened():
-    print("❌ Errore apertura webcam")
+    print("❌ Errore webcam")
     exit()
 
-print("Premi:")
-print("r = rock | p = paper | s = scissors | q = esci")
+print("r=rock | p=paper | s=scissors | q=quit")
 
-# contatori immagini
-counters = {cls: len(os.listdir(os.path.join(DATA_DIR, cls)))
-            for cls in CLASSES.values()}
+# contatori
+counters = {
+    cls: len(os.listdir(os.path.join(DATA_DIR, cls)))
+    for cls in CLASSES.values()
+}
 
-# LOOP PER CATTURARE IMMAGINI FINO A CHE NON SI ESCE 
-# TODO: RACCOLTA IMMAGINI CONTINUATIVE PER 5 MIN PER ARRICCHIRE IL DS
+active_class = None
+last_capture_time = 0
 
+# =========================
+# LOOP
+# =========================
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -42,8 +50,8 @@ while True:
 
     frame = cv2.flip(frame, 1)
 
-    cv2.putText(
-        frame,
+    # UI
+    cv2.putText(frame,
         "r=rock  p=paper  s=scissors  q=quit",
         (10, 30),
         cv2.FONT_HERSHEY_SIMPLEX,
@@ -52,25 +60,50 @@ while True:
         2
     )
 
-    cv2.imshow("Data Collection", frame)
+    if active_class:
+        cv2.putText(frame,
+            f"CAPTURING: {active_class} ({counters[active_class]}/{MAX_IMAGES})",
+            (10, 70),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.8,
+            (0, 0, 255),
+            2
+        )
+
+    cv2.imshow("Dataset Capture", frame)
 
     key = cv2.waitKey(1) & 0xFF
 
-    if key == ord('q'):
+    # uscita
+    if key == ord("q"):
         break
 
+    # attiva classe
     if chr(key) in CLASSES:
-        label = CLASSES[chr(key)]
-        counters[label] += 1
+        active_class = CLASSES[chr(key)]
+        print(f"▶ Avvio raccolta: {active_class}")
 
-        filename = f"{label}_{counters[label]}.png"
-        filepath = os.path.join(DATA_DIR, label, filename)
+    # cattura automatica
+    if active_class:
+        now = time.time()
+        if (
+            now - last_capture_time >= CAPTURE_DELAY and
+            counters[active_class] < MAX_IMAGES
+        ):
+            counters[active_class] += 1
+            filename = f"{active_class}_{counters[active_class]}.png"
+            path = os.path.join(DATA_DIR, active_class, filename)
+            cv2.imwrite(path, frame)
+            last_capture_time = now
+            print(f"✅ Salvata {path}")
 
-        cv2.imwrite(filepath, frame)
-        print(f"✅ Salvata: {filepath}")
+        # stop automatico
+        if counters[active_class] >= MAX_IMAGES:
+            print(f"⏹ Classe {active_class} completata")
+            active_class = None
 
-        time.sleep(0.2)  # per evitare le doppie foto
-
+# =========================
 # CLEANUP
+# =========================
 cap.release()
 cv2.destroyAllWindows()
