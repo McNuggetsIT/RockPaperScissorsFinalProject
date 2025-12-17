@@ -76,6 +76,13 @@ print("Premi 'q' per uscire")
 # stato gioco 
 pc_move = None
 result = ""
+player_score = 0
+pc_score = 0
+countdown = 0
+countdown_start = None
+
+import time
+
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -83,7 +90,7 @@ while True:
 
     frame = cv2.flip(frame, 1)
 
-    # ROI 
+    # ROI centrale
     h, w, _ = frame.shape
     size = 300
     cx, cy = w // 2, h // 2
@@ -96,24 +103,48 @@ while True:
     roi_rgb = cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)
     img = transform(roi_rgb).unsqueeze(0).to(DEVICE)
 
-    # Predizione continua 
+    # Predizione continua
     with torch.no_grad():
         outputs = model(img)
         pred = torch.argmax(outputs, dim=1).item()
 
     player_move = CLASSES[pred]
 
-    # Input tastiera
     key = cv2.waitKey(1) & 0xFF
 
-    if key == ord(" "):  # SPAZIO VUOTO PER LO SPAZIO SULLA TASTIERA 
-        pc_move = random.choice(CLASSES)
-        result = decide_winner(player_move, pc_move)
+    # AVVIO COUNTDOWN
+    if key == ord(" ") and countdown == 0:
+        countdown = 3
+        countdown_start = time.time()
+        pc_move = None
+        result = ""
+
+    # GESTIONE COUNTDOWN
+    if countdown > 0:
+        elapsed = time.time() - countdown_start
+        if elapsed >= 1:
+            countdown -= 1
+            countdown_start = time.time()
+
+        cv2.putText(frame, str(countdown + 1),
+                    (w // 2 - 40, h // 2),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    4, (0, 0, 255), 6)
+
+        # FINE COUNTDOWN → GIOCA
+        if countdown == 0:
+            pc_move = random.choice(CLASSES)
+            result = decide_winner(player_move, pc_move)
+
+            if result == "HAI VINTO":
+                player_score += 1
+            elif result == "HAI PERSO":
+                pc_score += 1
 
     if key == ord("q"):
         break
 
-    # FRAME SULLA WEBCAM 
+    # UI
     cv2.rectangle(frame,
         (cx - size // 2, cy - size // 2),
         (cx + size // 2, cy + size // 2),
@@ -129,7 +160,16 @@ while True:
         cv2.putText(frame, result, (10, 130),
                     cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
 
+    # SCORE
+    cv2.putText(frame,
+        f"Score  Tu {player_score} - {pc_score} PC",
+        (10, h - 20),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.9, (255, 255, 255), 2
+    )
+
     cv2.imshow("Rock Paper Scissors", frame)
+
 
 # CLEANUP
 cap.release()
