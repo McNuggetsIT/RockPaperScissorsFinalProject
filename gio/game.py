@@ -5,6 +5,7 @@ import random
 from torchvision import transforms
 import os
 import time
+from PIL import Image
 
 # PARAMETRI
 IMG_SIZE = 64
@@ -45,7 +46,6 @@ print("SPAZIO = gioca | Q = esci")
 
 # PREPROCESSING
 transform = transforms.Compose([
-    transforms.ToPILImage(),
     transforms.Resize((IMG_SIZE, IMG_SIZE)),
     transforms.ToTensor()
 ])
@@ -106,7 +106,8 @@ while True:
     ]
 
     roi_rgb = cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)
-    img = transform(roi_rgb).unsqueeze(0).to(DEVICE)
+    roi_pil = Image.fromarray(roi_rgb)
+    img = transform(roi_pil).unsqueeze(0).to(DEVICE)
 
     with torch.no_grad():
         outputs = model(img)
