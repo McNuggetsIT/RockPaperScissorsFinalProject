@@ -11,6 +11,7 @@ ROI_SIZE = 300          # dimensione finale immagine
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "my_dataset", "train")
+pers_dir = ""
 
 CLASSES = {
     "r": "rock",
@@ -123,7 +124,7 @@ while True:
             counters[active_class] < MAX_IMAGES
         ):
             counters[active_class] += 1
-            filename = f"{active_class}_{counters[active_class]}.png"
+            filename = f"{active_class}_{counters[active_class]}_{pers_dir}.png"
             path = os.path.join(DATA_DIR, active_class, filename)
 
             # salva SOLO ROI (300x300)
