@@ -4,3 +4,4 @@ Problemi riscontrati:
 3 - Conflitto su come fare un resize delle immagini Risolto
 4 - Riscontrato problema con ImageFolder -> RISOLTO
 5 - Giorgio ha un dispositivo di merda. -> RISOLTO -> Tutto quello che funziona a lui non va a noi. Bastardo
+6 - Congelare backbone -> Non conviene perchè utilizzato principalmente per addestramenti multipli, non adatto al nostro problema.
