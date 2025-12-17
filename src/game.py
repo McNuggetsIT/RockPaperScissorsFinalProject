@@ -132,9 +132,11 @@ while True:
             countdown -= 1
             countdown_start = time.time()
 
-        draw_text(frame, str(countdown + 1),
+        draw_text(frame, str(countdown),
                   (w//2 - 30, h//2),
                   scale=4, color=(0,0,255), thickness=4)
+ 
+
 
         if countdown == 0:
             pc_move = random.choice(CLASSES)
@@ -160,6 +162,11 @@ while True:
     # ---------- TESTI ----------
     draw_text(frame, f"Tu: {player_move}", (15, 40),
               scale=1, color=(0,255,0))
+    draw_text(frame,
+            "SPAZIO = Gioca | Q = Esci",
+            (cx - size//2, cy + size//2 + 40),
+            scale=0.8,
+            color=(255,255,255))
 
     if pc_move:
         draw_text(frame, f"PC: {pc_move}", (15, 80),
