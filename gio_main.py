@@ -2,34 +2,40 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms
-from torch.utils.data import random_split, DataLoader
+from torch.utils.data import DataLoader
 
-test_dir = "Rock-Paper-Scissors/test"
+# =========================
+# PATH DATASET
+# =========================
 train_dir = "Rock-Paper-Scissors/train"
-val_dir = "Rock-Paper-Scissors/validation"
+val_dir   = "Rock-Paper-Scissors/validation"
+test_dir  = "Rock-Paper-Scissors/test"
 
+# =========================
+# TRANSFORM
+# =========================
 transform = transforms.Compose([
-    transforms.Resize((64, 64)),   
+    transforms.Resize((64, 64)),
     transforms.ToTensor()
 ])
 
-dataset = datasets.ImageFolder(train_dir, transform=transform)
+# =========================
+# DATASET
+# =========================
+train_dataset = datasets.ImageFolder(train_dir, transform=transform)
 
-print("Classi:", dataset.classes)
-print("Numero immagini:", len(dataset))
+val_dataset = datasets.ImageFolder(val_dir, transform=transform)
 
-#controllo dimensioni immagini
-img, label = dataset[0]
-print("Dimensione immagine:", img.shape)
+test_dataset = datasets.ImageFolder(test_dir, transform=transform)
 
-val_ratio = 0.2
-val_size = int(val_ratio * len(dataset))
-train_size = len(dataset) - val_size
+print("Classi:", train_dataset.classes)
+print("Numero immagini train:", len(train_dataset))
+print("Numero immagini validation:", len(val_dataset))
+print("Test:", len(test_dataset))
 
-train_dataset, val_dataset = random_split(
-    dataset, [train_size, val_size]
-)
-
+# =========================
+# DATALOADER
+# =========================
 BATCH_SIZE = 32
 
 train_loader = DataLoader(
@@ -44,24 +50,37 @@ val_loader = DataLoader(
     shuffle=False
 )
 
+test_loader = DataLoader(
+    test_dataset,
+    batch_size=BATCH_SIZE,
+    shuffle=False
+)
+
+# =========================
+# DEVICE
+# =========================
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
+# =========================
+# MODELLO CNN
+# =========================
 class RPSNet(nn.Module):
     def __init__(self):
         super().__init__()
+
         self.net = nn.Sequential(
-            nn.Conv2d(3, 32, 3),
+            nn.Conv2d(3, 32, kernel_size=3),
             nn.ReLU(),
             nn.MaxPool2d(2),
 
-            nn.Conv2d(32, 64, 3),
+            nn.Conv2d(32, 64, kernel_size=3),
             nn.ReLU(),
             nn.MaxPool2d(2),
 
             nn.Flatten(),
             nn.Linear(64 * 14 * 14, 128),
             nn.ReLU(),
-            nn.Linear(128, 3)
+            nn.Linear(128, 3)   # 🔹 3 classi
         )
 
     def forward(self, x):
@@ -69,17 +88,24 @@ class RPSNet(nn.Module):
 
 model = RPSNet().to(DEVICE)
 
+# =========================
+# LOSS & OPTIMIZER
+# =========================
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
+# =========================
+# TRAINING LOOP
+# =========================
 EPOCHS = 10
 patience = 3
 
 best_val_acc = 0.0
 epochs_without_improvement = 0
+
 for epoch in range(EPOCHS):
 
-    # ===== TRAINING =====
+    # ===== TRAIN =====
     model.train()
     train_loss = 0.0
 
@@ -89,6 +115,7 @@ for epoch in range(EPOCHS):
         optimizer.zero_grad()
         outputs = model(images)
         loss = criterion(outputs, labels)
+
         loss.backward()
         optimizer.step()
 
@@ -102,6 +129,7 @@ for epoch in range(EPOCHS):
     with torch.no_grad():
         for images, labels in val_loader:
             images, labels = images.to(DEVICE), labels.to(DEVICE)
+
             outputs = model(images)
             preds = torch.argmax(outputs, dim=1)
 
@@ -112,16 +140,16 @@ for epoch in range(EPOCHS):
 
     print(
         f"Epoch {epoch+1}/{EPOCHS} | "
-        f"Train Loss: {train_loss:.3f} | "
+        f"Train Loss: {train_loss/len(train_loader):.4f} | "
         f"Val Acc: {val_acc:.2f}%"
     )
 
-    # ===== EARLY STOPPING + SALVATAGGIO =====
+    # ===== EARLY STOPPING =====
     if val_acc > best_val_acc:
         best_val_acc = val_acc
         epochs_without_improvement = 0
         torch.save(model.state_dict(), "best_rps_model.pth")
-        print("Nuovo modello migliore salvato!")
+        print("Nuovo modello migliore salvato")
     else:
         epochs_without_improvement += 1
         print(f"Nessun miglioramento ({epochs_without_improvement}/{patience})")
@@ -129,4 +157,3 @@ for epoch in range(EPOCHS):
     if epochs_without_improvement >= patience:
         print("Early stopping attivato")
         break
-
