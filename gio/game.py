@@ -14,7 +14,7 @@ CLASSES = ["rock", "paper", "scissors"]
 
 # PATH MODELLO
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "src", "best_rps_model.pth")
+MODEL_PATH = os.path.join(BASE_DIR, "src", "best_transfer_model.pth")
 
 # MODELLO
 class RPSNet(nn.Module):
