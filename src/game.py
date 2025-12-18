@@ -2,10 +2,12 @@ import cv2
 import torch
 import torch.nn as nn
 import random
+import torch.nn.functional as F
 from torchvision import transforms
 import os
 import time
 from collections import deque
+from PIL import Image
 
 # =========================
 # PARAMETRI
@@ -23,29 +25,32 @@ MODEL_PATH = os.path.join(BASE_DIR, "src", "best_rps_model.pth")
 # =========================
 # MODELLO
 # =========================
-class RPSNet(nn.Module):
+class CNNModel(nn.Module):
     def __init__(self):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Conv2d(3, 32, 3),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-            nn.Conv2d(32, 64, 3),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-            nn.Flatten(),
-            nn.Linear(64 * 30 * 30, 128),
-            nn.ReLU(),
-            nn.Linear(128, 3)
-        )
-
+        super(CNNModel, self).__init__()
+        self.conv1 = nn.Conv2d(3, 32, 5)
+        self.conv2 = nn.Conv2d(32, 64, 5)
+        self.conv3 = nn.Conv2d(64, 128, 3)
+        self.conv4 = nn.Conv2d(128, 256, 5)
+        
+        self.fc1 = nn.Linear(256, 50)
+        
+        self.pool = nn.MaxPool2d(2, 2)
+        
     def forward(self, x):
-        return self.net(x)
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = self.pool(F.relu(self.conv3(x)))
+        x = self.pool(F.relu(self.conv4(x)))
+        bs, _, _, _ = x.shape
+        x = F.adaptive_avg_pool2d(x, 1).reshape(bs, -1)
+        x = self.fc1(x)
+        return x
 
 # =========================
 # CARICA MODELLO
 # =========================
-model = RPSNet().to(DEVICE)
+model = CNNModel().to(DEVICE)
 model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
 model.eval()
 
@@ -53,7 +58,6 @@ model.eval()
 # PREPROCESSING (UGUALE AL TRAINING)
 # =========================
 transform = transforms.Compose([
-    transforms.ToPILImage(),
     transforms.Resize((IMG_SIZE, IMG_SIZE)),
     transforms.ToTensor(),
     transforms.Normalize([0.5,0.5,0.5],[0.5,0.5,0.5])
@@ -135,10 +139,8 @@ while True:
     cv2.imshow("HAND MASK", thresh)
 
     roi_rgb = cv2.cvtColor(thresh, cv2.COLOR_GRAY2RGB)
-    img = transform(roi_rgb).unsqueeze(0).to(DEVICE)
-
-
-    img = transform(roi_rgb).unsqueeze(0).to(DEVICE)
+    roi_pil = Image.fromarray(roi_rgb)
+    img = transform(roi_pil).unsqueeze(0).to(DEVICE)
 
     # ---------- PREDIZIONE STABILIZZATA ----------
     if countdown == 0:
@@ -182,6 +184,8 @@ while True:
                 player_score += 1
             elif result == "HAI PERSO":
                 pc_score += 1
+                
+            locked_player_move = None
 
     # ---------- UI PANEL ----------
     overlay = frame.copy()
