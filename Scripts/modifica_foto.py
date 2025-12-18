@@ -5,24 +5,18 @@ import os
 input_folder = r"test_peppe_mani"
 
 # Cartella di output dove salvare le immagini augmentate
-output_folder = os.path.join(input_folder, "augmented")
+output_folder = r"Rock-Paper-Scissors/train/scissors"
 os.makedirs(output_folder, exist_ok=True)
 
 counter = 1
 
 for filename in os.listdir(input_folder):
-    if filename.lower().endswith(".jpg"):
+    if filename.lower().endswith(".png"):
         img_path = os.path.join(input_folder, filename)
         img = cv2.imread(img_path)
         if img is None:
             print(f"❌ Non riesco a leggere {filename}")
             continue
-
-        # Salva copia originale
-        out_name = f"Pe_hc_{counter:03d}.jpg"
-        cv2.imwrite(os.path.join(output_folder, out_name), img)
-        print(f"✔ Salvata copia: {out_name}")
-        counter += 1
 
         # Rotazione leggera
         h, w = img.shape[:2]
@@ -35,7 +29,7 @@ for filename in os.listdir(input_folder):
 
         # Flip orizzontale
         flipped = cv2.flip(img, 1)
-        out_name = f"Pe_hc_{counter:03d}.jpg"
+        out_name = f"Pe_hc_paper{counter:03d}.jpg"
         cv2.imwrite(os.path.join(output_folder, out_name), flipped)
         print(f"✔ Salvato flip: {out_name}")
         counter += 1
