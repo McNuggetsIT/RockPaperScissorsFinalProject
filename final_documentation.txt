@@ -1,0 +1,100 @@
+"Sfida all'Ultimo Gesto: Sasso, Carta, Forbice vs PC"
+
+------ Obiettivi: 
+L'obiettivo è costruire un gioco interattivo. Il giocatore farà un gesto (Sasso, Carta o Forbice) davanti alla webcam del computer. Un modello di Intelligenza Artificiale (Deep Learning) dovrà "guardare" l'immagine dalla webcam e capire che mossa ha fatto il giocatore. Il computer poi sceglierà una mossa a caso e il programma decreterà il vincitore della mano.
+
+------ Descrizione progetto:
+Tramite una rete neurale (CNN), si addestra la rete neurale per riconoscere la forma delle mani per associarle nella maniera più precisa possibile alle varie classi: Sasso, Carta, Forbice; successivamente tramite lo script OpenCV si userà la telecamera per riconoscere dal vivo la posizione delle mani.
+
+------ Preparazione al progetto: 
+I membri del gruppo si sono allineati con le versioni di python e delle librerie utilizzate, comunicando eventuali problemi di versioni per successive installazioni di altre librerie per rimanere sempre allineati. Successivamente si è suddiviso il lavoro tra i vari membri per avere già i vari pezzi necessari pronti, nella progettazione del modello si è fatto un lavoro comune per cercare il modello migliore risolvendo eventuali problemi.
+
+------ Dataset: 
+
+Per l’addestramento del modello di classificazione Rock–Paper–Scissors sono stati utilizzati due dataset distinti, entrambi scaricati dalla piattaforma Kaggle, successivamente uniti in un unico dataset finale.
+La scelta di combinare due sorgenti diverse è stata fatta per aumentare la varietà delle immagini e rendere il modello più robusto rispetto alle condizioni reali.
+----------------------
+Come è composto:
+Il dataset finale comprende tre classi principali:
+rock: mano chiusa a pugno
+paper: mano completamente aperta
+scissors: mano con indice e medio estesi
+Ogni immagine appartiene a una sola classe. Le immagini sono organizzate in cartelle separate per le fasi di addestramento (train), validazione (validation) e test (test), così da gestire in modo ordinato il processo di sviluppo e valutazione del modello.
+Il dataset finale è il risultato dell’unione di:
+
+Dataset A: contiene immagini generate tramite computer, con contorni molto puliti e forme ben definite. Queste immagini sono utili perché riducono il rumore visivo e permettono al modello di apprendere in modo più semplice le differenze tra i gesti.
+Dataset B: contiene immagini reali di mani, acquisite in condizioni più vicine al mondo reale, con sfondi differenti e maggiore variabilità (luce, colori, angolazioni). Questo tipo di immagini è importante perché avvicina i dati di training a ciò che accade durante l’uso tramite webcam.
+Unendo i due dataset si ottiene quindi un insieme di dati più vario, che include sia esempi puliti sia esempi più realistici.
+
+Considerazioni
+
+Nonostante l’unione dei due dataset migliori la varietà, possono comunque rimanere alcune criticità:
+le immagini generate al computer sono spesso molto diverse da quelle reali
+le immagini reali possono avere condizioni molto variabili che il modello potrebbe non coprire completamente
+Queste differenze possono influenzare la capacità del modello di generalizzare perfettamente in tempo reale. 
+
+------ Strategie considerate
+Per migliorare ulteriormente la generalizzazione del modello sono state pianificate alcune strategie, tra cui:
+
+data augmentation (rotazioni, flip, variazioni di luminosità)
+
+acquisizione di ulteriori immagini tramite webcam
+
+utilizzo di una Region of Interest (ROI) per ridurre l’impatto dello sfondo
+
+------ Descrizione modello:
+
+Per il riconoscimento dei gesti di Rock–Paper–Scissors è stato utilizzato un modello di rete neurale convoluzionale (CNN), denominato RPSNet.
+
+Le CNN sono particolarmente adatte al riconoscimento di immagini poiché sono in grado di:
+
+estrarre automaticamente caratteristiche visive rilevanti
+
+mantenere l’informazione spaziale dell’immagine
+
+ridurre la necessità di progettare manualmente le feature
+
+Al termine della fase di addestramento, il modello viene caricato in modalità di inferenza per essere utilizzato nel gioco in tempo reale tramite webcam:
+
+model = RPSNet().to(DEVICE)
+model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
+model.eval()
+
+In questa fase:
+
+il modello viene caricato in memoria
+
+i pesi appresi durante il training vengono ripristinati
+
+la modalità eval() disattiva componenti come il dropout, garantendo predizioni stabili
+
+Questo passaggio consente di separare chiaramente la fase di addestramento da quella di utilizzo reale del modello.
+
+------ Scelte architetturali:
+
+Perché è stato scelto PyTorch
+Il framework PyTorch è stato scelto per lo sviluppo del modello di Deep Learning per diversi motivi:
+Semplicità e leggibilità del codice
+PyTorch consente di scrivere modelli in modo chiaro e intuitivo, facilitando il debugging e la comprensione del flusso dei dati.
+
+Controllo esplicito del training loop
+A differenza di framework più astratti, PyTorch offre un controllo dettagliato su ogni fase dell’addestramento, rendendo semplice l’integrazione di validation, early stopping e salvataggio del modello migliore.
+
+Supporto per applicazioni real-time
+PyTorch si integra facilmente con OpenCV, risultando particolarmente adatto ad applicazioni che utilizzano immagini acquisite da webcam in tempo reale.
+
+Ampia diffusione in ambito accademico e di ricerca
+PyTorch è uno standard di riferimento nel Deep Learning moderno, rendendolo una scelta solida anche dal punto di vista formativo.
+
+Grazie a queste caratteristiche, PyTorch si è dimostrato uno strumento efficace sia per l’addestramento del modello sia per la sua integrazione all’interno del gioco interattivo Rock–Paper–Scissors.
+
+------ Utilizzo:
+Per utilizzare il programma è sufficiente avviare l'eseguibile e posizionare la mano nel riquadro corretto, successivamente cliccare il tasto in sovraimpressione per avviare o chiudere il programma.
+
+------ Risultati finali:
+
+------ Problemi riscontrati: 
+Nonostante l'alta accuracy durante il training, nell'utilizzo reale ogni tanto si confonde sulla mano associata
+
+------ Possibili sviluppi futuri: 
+Riuscire ad addestrare il modello su dati creati in maniera personale e successivamente ottenere una buona accuracy durante l'utilizzo.
