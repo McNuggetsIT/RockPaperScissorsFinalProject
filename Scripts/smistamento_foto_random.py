@@ -15,8 +15,8 @@ for category in ["rock", "paper", "scissors"]:
     os.makedirs(os.path.join(test_dir, category), exist_ok=True)
 
 # Numero minimo e massimo di immagini da spostare
-min_images = 5
-max_images = 10
+min_images = 15
+max_images = 30
 
 for category in ["rock", "paper", "scissors"]:
     train_category_dir = os.path.join(train_dir, category)

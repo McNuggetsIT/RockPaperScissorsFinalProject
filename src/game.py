@@ -2,10 +2,12 @@ import cv2
 import torch
 import torch.nn as nn
 import random
+import torch.nn.functional as F
 from torchvision import transforms
 import os
 import time
 from collections import deque
+from PIL import Image
 
 # =========================
 # PARAMETRI
@@ -18,7 +20,7 @@ CLASSES = ["rock", "paper", "scissors"]
 # PATH MODELLO
 # =========================
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "src", "best_rps_model.pth")
+MODEL_PATH = os.path.join(BASE_DIR, "src", "NON CANCELLARE.pth")
 
 # =========================
 # MODELLO
@@ -30,9 +32,11 @@ class RPSNet(nn.Module):
             nn.Conv2d(3, 32, 3),
             nn.ReLU(),
             nn.MaxPool2d(2),
+
             nn.Conv2d(32, 64, 3),
             nn.ReLU(),
             nn.MaxPool2d(2),
+
             nn.Flatten(),
             nn.Linear(64 * 30 * 30, 128),
             nn.ReLU(),
@@ -53,7 +57,6 @@ model.eval()
 # PREPROCESSING (UGUALE AL TRAINING)
 # =========================
 transform = transforms.Compose([
-    transforms.ToPILImage(),
     transforms.Resize((IMG_SIZE, IMG_SIZE)),
     transforms.ToTensor(),
     transforms.Normalize([0.5,0.5,0.5],[0.5,0.5,0.5])
@@ -135,10 +138,8 @@ while True:
     cv2.imshow("HAND MASK", thresh)
 
     roi_rgb = cv2.cvtColor(thresh, cv2.COLOR_GRAY2RGB)
-    img = transform(roi_rgb).unsqueeze(0).to(DEVICE)
-
-
-    img = transform(roi_rgb).unsqueeze(0).to(DEVICE)
+    roi_pil = Image.fromarray(roi_rgb)
+    img = transform(roi_pil).unsqueeze(0).to(DEVICE)
 
     # ---------- PREDIZIONE STABILIZZATA ----------
     if countdown == 0:
@@ -182,6 +183,8 @@ while True:
                 player_score += 1
             elif result == "HAI PERSO":
                 pc_score += 1
+                
+            locked_player_move = None
 
     # ---------- UI PANEL ----------
     overlay = frame.copy()

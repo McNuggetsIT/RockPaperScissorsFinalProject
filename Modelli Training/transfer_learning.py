@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
-from torchvision import datasets, transforms
+from torchvision import models, transforms
+from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
 
 # =========================
@@ -16,6 +16,8 @@ test_dir  = "data_transfer/test"
 # =========================
 BATCH_SIZE = 32
 EPOCHS = 10
+BATCH_SIZE = 32
+NUM_CLASSES = 3
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 FINE_TUNE_EPOCH = 5   # epoca in cui inizia il fine tuning
 
@@ -24,8 +26,12 @@ FINE_TUNE_EPOCH = 5   # epoca in cui inizia il fine tuning
 # Usa 64x64, compatibile con tuo nuovo modello
 # =========================
 transform = transforms.Compose([
-    transforms.Resize((64, 64)),
-    transforms.ToTensor()
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    )
 ])
 
 # =========================
@@ -103,6 +109,7 @@ optimizer = optim.Adam(model.net[9].parameters(), lr=1e-3)
 best_val_acc = 0.0
 
 for epoch in range(EPOCHS):
+    running_loss = 0.0
 
     # 🔓 Inizio FINE TUNING
     if epoch == FINE_TUNE_EPOCH:
@@ -126,7 +133,6 @@ for epoch in range(EPOCHS):
         optimizer.zero_grad()
         outputs = model(images)
         loss = criterion(outputs, labels)
-
         loss.backward()
         optimizer.step()
 
@@ -173,4 +179,6 @@ with torch.no_grad():
         correct += (preds == labels).sum().item()
         total += labels.size(0)
 
-print(f"🎯 Test Accuracy: {100*correct/total:.2f}%")
+torch.save(model.state_dict(), MODEL_PATH)
+print("✅ Training completed")
+print("💾 Model saved as:", MODEL_PATH)
