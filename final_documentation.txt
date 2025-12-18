@@ -1,0 +1,27 @@
+"Sfida all'Ultimo Gesto: Sasso, Carta, Forbice vs PC"
+
+Obiettivi: 
+L'obiettivo è costruire un gioco interattivo. Il giocatore farà un gesto (Sasso, Carta o Forbice) davanti alla webcam del computer. Un modello di Intelligenza Artificiale (Deep Learning) dovrà "guardare" l'immagine dalla webcam e capire che mossa ha fatto il giocatore. Il computer poi sceglierà una mossa a caso e il programma decreterà il vincitore della mano.
+
+Descrizione progetto:
+Tramite una rete neurale (CNN), si addestra la rete neurale per riconoscere la forma delle mani per associarle nella maniera più precisa possibile alle varie classi: Sasso, Carta, Forbice; successivamente tramite lo script OpenCV si userà la telecamera per riconoscere dal vivo la posizione delle mani.
+
+Preparazione al progetto: 
+I membri del gruppo si sono allineati con le versioni di python e delle librerie utilizzate, comunicando eventuali problemi di versioni per successive installazioni di altre librerie per rimanere sempre allineati. Successivamente si è suddiviso il lavoro tra i vari membri per avere già i vari pezzi necessari pronti, nella progettazione del modello si è fatto un lavoro comune per cercare il modello migliore risolvendo eventuali problemi.
+
+Dataset: 
+
+Descrizione modello:
+
+Scelte architetturali:
+
+Utilizzo:
+Per utilizzare il programma è sufficiente avviare l'eseguibile e posizionare la mano nel riquadro corretto, successivamente cliccare il tasto in sovraimpressione per avviare o chiudere il programma.
+
+Risultati finali:
+
+Problemi riscontrati: 
+Nonostante l'alta accuracy durante il training, nell'utilizzo reale ogni tanto si confonde sulla mano associata
+
+Possibili sviluppi futuri: 
+Riuscire ad addestrare il modello su dati creati in maniera personale e successivamente ottenere una buona accuracy durante l'utilizzo.

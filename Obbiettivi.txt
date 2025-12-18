@@ -15,3 +15,4 @@ Problemi riscontrati:
 3 - Conflitto su come fare un resize delle immagini Risolto
 4 - Riscontrato problema con ImageFolder -> Da fixare
 5 - Congelare backbone -> Non conviene perchè utilizzato principalmente per addestramenti multipli, non adatto al nostro problema.
+6 - Problema riconoscimento mani dopo prima giocata -> Risolto
