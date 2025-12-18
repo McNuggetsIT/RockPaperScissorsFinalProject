@@ -1,8 +1,11 @@
+import os
+import re
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
+from PIL import Image
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
@@ -12,7 +15,7 @@ import numpy as np
 # PATH DATASET
 # =========================
 train_dir = "Rock-Paper-Scissors/train"
-val_dir   = "Rock-Paper-Scissors/validation"
+val_dir   = "Rock-Paper-Scissors/val"
 test_dir  = "Rock-Paper-Scissors/test"
 
 # =========================
@@ -20,20 +23,50 @@ test_dir  = "Rock-Paper-Scissors/test"
 # =========================
 transform = transforms.Compose([
     transforms.Resize((140, 140)),
-    transforms.RandomCrop((128, 128)),  # 🔥 rompe il bias di altezza
+    transforms.RandomCrop((128, 128)),
     transforms.RandomHorizontalFlip(),
     transforms.RandomRotation(20),
     transforms.ToTensor(),
     transforms.Normalize([0.5]*3, [0.5]*3)
 ])
 
+# =========================
+# CUSTOM DATASET PER VALIDATION
+# =========================
+class ValidationDataset(Dataset):
+    def __init__(self, img_dir, transform=None):
+        self.img_dir = img_dir
+        self.transform = transform
+        self.img_files = [
+            f for f in os.listdir(img_dir)
+            if f.lower().endswith((".png", ".jpg", ".jpeg"))
+        ]
+        self.class_to_idx = {"rock":0, "paper":1, "scissors":2}
 
+    def __len__(self):
+        return len(self.img_files)
+
+    def __getitem__(self, idx):
+        filename = self.img_files[idx]
+        img_path = os.path.join(self.img_dir, filename)
+        image = Image.open(img_path).convert("RGB")
+        
+        # Usa regex per trovare la classe nel nome del file
+        match = re.match(r'(rock|paper|scissors)', filename.lower())
+        if not match:
+            raise ValueError(f"Nome file non valido per estrarre la classe: {filename}")
+        label_name = match.group(0)
+        label = self.class_to_idx[label_name]
+        
+        if self.transform:
+            image = self.transform(image)
+        return image, label
 
 # =========================
 # DATASET
 # =========================
 train_dataset = datasets.ImageFolder(train_dir, transform=transform)
-val_dataset   = datasets.ImageFolder(val_dir, transform=transform)
+val_dataset   = ValidationDataset(val_dir, transform=transform)
 test_dataset  = datasets.ImageFolder(test_dir, transform=transform)
 
 print("Classi:", train_dataset.classes)
@@ -101,28 +134,22 @@ best_val_acc = 0.0
 epochs_no_improve = 0
 
 for epoch in range(EPOCHS):
-
     # ---- TRAIN ----
     model.train()
     running_loss = 0.0
-
     for images, labels in train_loader:
         images, labels = images.to(DEVICE), labels.to(DEVICE)
-
         optimizer.zero_grad()
         outputs = model(images)
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
-
         running_loss += loss.item()
-
     avg_train_loss = running_loss / len(train_loader)
 
     # ---- VALIDATION ----
     model.eval()
     correct, total = 0, 0
-
     with torch.no_grad():
         for images, labels in val_loader:
             images, labels = images.to(DEVICE), labels.to(DEVICE)
@@ -130,7 +157,6 @@ for epoch in range(EPOCHS):
             preds = torch.argmax(outputs, dim=1)
             correct += (preds == labels).sum().item()
             total += labels.size(0)
-
     val_acc = 100 * correct / total
 
     train_losses.append(avg_train_loss)

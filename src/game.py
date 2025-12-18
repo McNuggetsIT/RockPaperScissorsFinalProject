@@ -25,32 +25,31 @@ MODEL_PATH = os.path.join(BASE_DIR, "src", "best_rps_model.pth")
 # =========================
 # MODELLO
 # =========================
-class CNNModel(nn.Module):
+class RPSNet(nn.Module):
     def __init__(self):
-        super(CNNModel, self).__init__()
-        self.conv1 = nn.Conv2d(3, 32, 5)
-        self.conv2 = nn.Conv2d(32, 64, 5)
-        self.conv3 = nn.Conv2d(64, 128, 3)
-        self.conv4 = nn.Conv2d(128, 256, 5)
-        
-        self.fc1 = nn.Linear(256, 50)
-        
-        self.pool = nn.MaxPool2d(2, 2)
-        
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Conv2d(3, 32, 3),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+
+            nn.Conv2d(32, 64, 3),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+
+            nn.Flatten(),
+            nn.Linear(64 * 30 * 30, 128),
+            nn.ReLU(),
+            nn.Linear(128, 3)
+        )
+
     def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = self.pool(F.relu(self.conv3(x)))
-        x = self.pool(F.relu(self.conv4(x)))
-        bs, _, _, _ = x.shape
-        x = F.adaptive_avg_pool2d(x, 1).reshape(bs, -1)
-        x = self.fc1(x)
-        return x
+        return self.net(x)
 
 # =========================
 # CARICA MODELLO
 # =========================
-model = CNNModel().to(DEVICE)
+model = RPSNet().to(DEVICE)
 model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
 model.eval()
 
