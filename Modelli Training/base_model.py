@@ -20,14 +20,12 @@ test_dir  = "Rock-Paper-Scissors/test"
 # =========================
 transform = transforms.Compose([
     transforms.Resize((140, 140)),
-    transforms.RandomCrop((128, 128)),  # 🔥 rompe il bias di altezza
+    transforms.RandomCrop((128, 128)), 
     transforms.RandomHorizontalFlip(),
     transforms.RandomRotation(20),
     transforms.ToTensor(),
     transforms.Normalize([0.5]*3, [0.5]*3)
 ])
-
-
 
 # =========================
 # DATASET
