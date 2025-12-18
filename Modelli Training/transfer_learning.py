@@ -5,7 +5,7 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
 # =========================
-# PATH DATASET NUOVO
+# PATH DATASET
 # =========================
 train_dir = "data_transfer/train"
 val_dir   = "data_transfer/val"
@@ -17,12 +17,11 @@ test_dir  = "data_transfer/test"
 BATCH_SIZE = 32
 EPOCHS = 10
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
-# ⚠️ numero classi del NUOVO dataset
-NUM_NEW_CLASSES = len(datasets.ImageFolder(train_dir).classes)
+FINE_TUNE_EPOCH = 5   # epoca in cui inizia il fine tuning
 
 # =========================
-# TRANSFORM (uguale al vecchio modello)
+# TRANSFORM
+# Usa 64x64, compatibile con tuo nuovo modello
 # =========================
 transform = transforms.Compose([
     transforms.Resize((64, 64)),
@@ -30,7 +29,7 @@ transform = transforms.Compose([
 ])
 
 # =========================
-# DATASET
+# DATASET & DATALOADER
 # =========================
 train_dataset = datasets.ImageFolder(train_dir, transform=transform)
 val_dataset   = datasets.ImageFolder(val_dir, transform=transform)
@@ -40,28 +39,28 @@ train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 val_loader   = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 test_loader  = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
+NUM_NEW_CLASSES = len(train_dataset.classes)
 print("Nuove classi:", train_dataset.classes)
 
 # =========================
-# MODELLO (IDENTICO AL VECCHIO)
+# MODELLO
 # =========================
 class RPSNet(nn.Module):
     def __init__(self, num_classes=3):
         super().__init__()
-
         self.net = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
+            nn.Conv2d(3, 32, 3),       # 0
+            nn.ReLU(),                 # 1
+            nn.MaxPool2d(2),           # 2
 
-            nn.Conv2d(32, 64, kernel_size=3),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
+            nn.Conv2d(32, 64, 3),      # 3
+            nn.ReLU(),                 # 4
+            nn.MaxPool2d(2),           # 5
 
-            nn.Flatten(),
-            nn.Linear(64 * 14 * 14, 128),
-            nn.ReLU(),
-            nn.Linear(128, 3)   # 🔹 3 classi
+            nn.Flatten(),              # 6
+            nn.Linear(64*14*14, 128),  # 7
+            nn.ReLU(),                 # 8
+            nn.Linear(128, num_classes) # 9
         )
 
     def forward(self, x):
@@ -71,36 +70,51 @@ class RPSNet(nn.Module):
 # CARICAMENTO MODELLO PRE-ADDESTRATO
 # =========================
 model = RPSNet(num_classes=3).to(DEVICE)
-model.load_state_dict(torch.load("best_rps_model.pth"))
-print("✔ Modello preaddestrato caricato")
 
-# =========================
-# FREEZE BACKBONE
-# =========================
-for param in model.net[:-1].parameters():
-    param.requires_grad = False
+# Carico SOLO layer compatibili per evitare mismatch
+pretrained_dict = torch.load("best_rps_model.pth", map_location=DEVICE)
+model_dict = model.state_dict()
+
+# filtra i pesi compatibili (con stessa shape)
+pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict and v.size() == model_dict[k].size()}
+
+model_dict.update(pretrained_dict)
+model.load_state_dict(model_dict)
+
+print("✔ Modello pre-addestrato caricato (pesi compatibili)")
 
 # =========================
 # NUOVO CLASSIFICATORE
 # =========================
-model.net[-1] = nn.Linear(128, NUM_NEW_CLASSES)
-model = model.to(DEVICE)
+model.net[9] = nn.Linear(128, NUM_NEW_CLASSES).to(DEVICE)
+
 # =========================
-# LOSS & OPTIMIZER
+# FASE 1 — FREEZE BACKBONE
 # =========================
+for param in model.net[:6].parameters():  # conv + pool
+    param.requires_grad = False
+
 criterion = nn.CrossEntropyLoss()
-
-optimizer = optim.Adam(
-    model.net[-1].parameters(),
-    lr=0.001
-)
+optimizer = optim.Adam(model.net[9].parameters(), lr=1e-3)
 
 # =========================
-# TRAINING + VALIDATION
+# TRAINING + FINE TUNING
 # =========================
 best_val_acc = 0.0
 
 for epoch in range(EPOCHS):
+
+    # 🔓 Inizio FINE TUNING
+    if epoch == FINE_TUNE_EPOCH:
+        print("\n🔓 Avvio FINE TUNING (sblocco Conv2)")
+
+        for param in model.net[3:6].parameters():  # Conv2 + ReLU + Pool
+            param.requires_grad = True
+
+        optimizer = optim.Adam([
+            {"params": model.net[3:6].parameters(), "lr": 1e-4},
+            {"params": model.net[9].parameters(), "lr": 1e-3}
+        ])
 
     # ---- TRAIN ----
     model.train()
@@ -120,8 +134,7 @@ for epoch in range(EPOCHS):
 
     # ---- VALIDATION ----
     model.eval()
-    correct = 0
-    total = 0
+    correct, total = 0, 0
 
     with torch.no_grad():
         for images, labels in val_loader:
@@ -135,13 +148,13 @@ for epoch in range(EPOCHS):
 
     print(
         f"Epoch {epoch+1}/{EPOCHS} | "
-        f"Train Loss: {train_loss/len(train_loader):.4f} | "
+        f"Loss: {train_loss/len(train_loader):.4f} | "
         f"Val Acc: {val_acc:.2f}%"
     )
 
     if val_acc > best_val_acc:
         best_val_acc = val_acc
-        torch.save(model.state_dict(), "best_transfer_model.pth")
+        torch.save(model.state_dict(), "best_finetuned_model.pth")
         print("✔ Miglior modello salvato")
 
 # =========================
@@ -149,17 +162,14 @@ for epoch in range(EPOCHS):
 # =========================
 print("\n🔎 Test finale")
 
-model.load_state_dict(torch.load("best_transfer_model.pth"))
+model.load_state_dict(torch.load("best_finetuned_model_funzionante.pth", map_location=DEVICE))
 model.eval()
 
-correct = 0
-total = 0
-
+correct, total = 0, 0
 with torch.no_grad():
     for images, labels in test_loader:
         images, labels = images.to(DEVICE), labels.to(DEVICE)
         preds = torch.argmax(model(images), dim=1)
-
         correct += (preds == labels).sum().item()
         total += labels.size(0)
 
