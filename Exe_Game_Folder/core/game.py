@@ -101,7 +101,7 @@ def run_game():
     last_result = None
     result_time = 0
 
-    player_move = "rock"   # default sicuro
+    player_move = "rock"
 
     # ----- TRANSFORM -----
     tf = transforms.Compose([
@@ -240,7 +240,6 @@ def run_game():
             1.2
         )
 
-        # ----- COUNTDOWN VISIVO -----
         # ----- COUNTDOWN VISIVO (IN ALTO) -----
         if countdown > 0:
             draw_text(

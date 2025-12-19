@@ -14,11 +14,11 @@ LOGO_PATH   = os.path.join(ASSETS, "logo.png")
 WINDOW = "Rock Paper Scissors"
 
 def main():
-    # 1 crea la finestra UNA SOLA VOLTA
+    # 1 crea la finestra
     cv2.namedWindow(WINDOW, cv2.WINDOW_NORMAL)
     cv2.resizeWindow(WINDOW, 1280, 720)
 
-    # SPLASH + TRANSIZIONE LOGO (SOLO ALL'AVVIO)
+    # SPLASH + TRANSIZIONE LOGO 
     show_splash(WINDOW, SPLASH_PATH, LOGO_PATH)
 
     #  MENU
