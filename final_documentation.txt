@@ -98,3 +98,16 @@ Nonostante l'alta accuracy durante il training, nell'utilizzo reale ogni tanto s
 
 ------ Possibili sviluppi futuri: 
 Riuscire ad addestrare il modello su dati creati in maniera personale e successivamente ottenere una buona accuracy durante l'utilizzo.
+
+------ Limiti progetto: 
+Nonostante gli ottimi risultati ottenuti il progetto presenta alcune limitazioni:
+
+- l'hardware, indipendentemente dall'algoritmo influenza la velocità di addestramento ed eventuali blocchi del computer per il sovraccarico di risorse usate;
+
+- la quantità e la varietà delle immagini influenza notevolmente l'apprendimento, alcune immagini possono inserire troppo rumore e penzalizzare l'addestramento;
+
+- si può generare facilmente overfitting, le immagini risultanti dalla telecamera potrebbero essere molto diverse rispetto a quelle nel dataset risultando in alcuni casi in una diminuzione dell'accuracy.
+
+Inoltre il modello non è stato testato su un ampio numero di utenti reali, limitando la valutazione delle prestazioni in scenari d’uso reali.
+
+Tali limiti suggeriscono la necessità di ulteriori sviluppi, come l’espansione del dataset, l’uso di architetture più avanzate e l’ottimizzazione per l’esecuzione in tempo reale.
