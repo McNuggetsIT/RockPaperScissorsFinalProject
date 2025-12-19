@@ -145,6 +145,37 @@ def calc_damage(combo):
     return DMG * 2 if combo >= 2 else DMG
 
 # =========================
+# APP STATE
+# =========================
+STATE_MENU = "MENU"
+STATE_GAME = "GAME"
+STATE_CREDITS = "CREDITS"
+
+app_state = STATE_MENU
+menu_index = 0
+
+menu_items = ["START", "CREDITI", "ESCI"]
+
+credits = [
+    "GAG - Rock Paper Scissors",
+    "",
+    "Game Design:",
+    " - TU 🔥",
+    "",
+    "AI / ML:",
+    " - PyTorch Model",
+    "",
+    "Graphics:",
+    " - Custom HUD",
+    "",
+    "Audio:",
+    " - Procedural Sound FX",
+    "",
+    "Powered by Python"
+]
+
+
+# =========================
 # LOOP
 # =========================
 while True:
