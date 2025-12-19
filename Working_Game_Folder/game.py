@@ -8,6 +8,39 @@ import os
 import time
 from collections import deque
 from PIL import Image
+import numpy as np
+import pygame
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# =========================
+# AUDIO AUTO-GENERATO (FIX STEREO)
+# =========================
+import pygame
+import numpy as np
+
+pygame.mixer.init(frequency=44100, size=-16, channels=2)
+
+def gen_tone(freq=440, duration=0.15, volume=0.4):
+    sample_rate = 44100
+    t = np.linspace(0, duration, int(sample_rate * duration), False)
+
+    wave = np.sin(freq * t * 2 * np.pi)
+    wave = (wave * (2**15 - 1) * volume).astype(np.int16)
+
+    # 🔥 DUPLICA IN STEREO (shape: [N, 2])
+    stereo_wave = np.column_stack((wave, wave))
+
+    return pygame.sndarray.make_sound(stereo_wave)
+
+# =========================
+# SUONI DI GIOCO
+# =========================
+snd_hit_ai     = gen_tone(220, 0.12)   # colpisci AI
+snd_hit_player = gen_tone(90, 0.15)    # vieni colpito
+snd_win        = gen_tone(880, 0.35)   # vittoria
+snd_lose       = gen_tone(140, 0.40)   # sconfitta
+snd_count      = gen_tone(600, 0.08)   # countdown
+snd_click      = gen_tone(500, 0.05)   # click
+
 
 # =========================
 # PARAMETRI
@@ -16,13 +49,15 @@ IMG_SIZE = 128
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 CLASSES = ["rock", "paper", "scissors"]
 
+MAX_HP = 100
+DMG = 25
+HP_LERP_SPEED = 0.15
+
 # =========================
 # PATH
 # =========================
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "Working_Game_Folder", "GAG_RPS_Model.pth")
-BG_PATH = os.path.join(BASE_DIR, "Working_Game_Folder", "Bg23.png")
-SPLASH_PATH = os.path.join(BASE_DIR, "Working_Game_Folder", "splash_screen.png")
+MODEL_PATH = os.path.join(BASE_DIR,"Working_Game_Folder","GAG_RPS_Model.pth")
+BG_PATH    = os.path.join(BASE_DIR,"Working_Game_Folder","Bg23.png")
 
 # =========================
 # MODELLO
@@ -31,118 +66,83 @@ class RPSNet(nn.Module):
     def __init__(self):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Conv2d(3, 32, 3),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-            nn.Conv2d(32, 64, 3),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
+            nn.Conv2d(3,32,3), nn.ReLU(), nn.MaxPool2d(2),
+            nn.Conv2d(32,64,3), nn.ReLU(), nn.MaxPool2d(2),
             nn.Flatten(),
-            nn.Linear(64 * 30 * 30, 128),
-            nn.ReLU(),
-            nn.Linear(128, 3)
+            nn.Linear(64*30*30,128), nn.ReLU(),
+            nn.Linear(128,3)
         )
-
-    def forward(self, x):
+    def forward(self,x): 
         return self.net(x)
 
-# =========================
-# FUNZIONI
-# =========================
-def decide_winner(player, pc):
-    if player == pc:
-        return "PAREGGIO"
-    if (player == "rock" and pc == "scissors") or \
-       (player == "paper" and pc == "rock") or \
-       (player == "scissors" and pc == "paper"):
-        return "HAI VINTO"
-    return "HAI PERSO"
+def decide_round(p,a):
+    if p == a: 
+        return "DRAW"
+    if (p=="rock" and a=="scissors") or (p=="paper" and a=="rock") or (p=="scissors" and a=="paper"):
+        return "PLAYER"
+    return "AI"
 
-def draw_text(img, text, pos, scale=1, color=(255,255,255), thickness=2):
-    cv2.putText(img, text, pos, cv2.FONT_HERSHEY_SIMPLEX,
-                scale, (0,0,0), thickness+2)
-    cv2.putText(img, text, pos, cv2.FONT_HERSHEY_SIMPLEX,
-                scale, color, thickness)
+def draw_text(img,text,pos,scale=1,color=(255,255,255),th=2):
+    cv2.putText(img,text,pos,cv2.FONT_HERSHEY_SIMPLEX,scale,(0,0,0),th+2)
+    cv2.putText(img,text,pos,cv2.FONT_HERSHEY_SIMPLEX,scale,color,th)
 
 # =========================
-# CARICAMENTO MODELLO
+# LOAD
 # =========================
 model = RPSNet().to(DEVICE)
-model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
+model.load_state_dict(torch.load(MODEL_PATH,map_location=DEVICE))
 model.eval()
 
-# =========================
-# SPLASH SCREEN
-# =========================
-splash = cv2.imread(SPLASH_PATH)
-if splash is not None:
-    splash = cv2.resize(splash, (1280, 720))
-    cv2.imshow("Rock Paper Scissors", splash)
-    start = time.time()
-    while time.time() - start < 2.5:
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
-    cv2.destroyWindow("Rock Paper Scissors")
-
-# =========================
-# CARICAMENTO ASSET
-# =========================
-bg_img = cv2.imread(BG_PATH)
-if bg_img is None:
-    raise FileNotFoundError(f"❌ Background mancante: {BG_PATH}")
-
-# =========================
-# FINESTRA
-# =========================
-WINDOW_NAME = "Rock Paper Scissors"
-cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
-cv2.resizeWindow(WINDOW_NAME, 1280, 800)
-
-# =========================
-# PREPROCESSING
-# =========================
-transform = transforms.Compose([
-    transforms.Resize((IMG_SIZE, IMG_SIZE)),
-    transforms.ToTensor(),
-    transforms.Normalize([0.5]*3, [0.5]*3)
-])
+bg = cv2.imread(BG_PATH)
 
 # =========================
 # WEBCAM
 # =========================
 cap = cv2.VideoCapture(0)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-if not cap.isOpened():
-    raise RuntimeError("❌ Errore apertura webcam")
+cap.set(3,1280)
+cap.set(4,720)
 
 # =========================
 # STATO
 # =========================
-player_score = 0
-pc_score = 0
+player_hp = ai_hp = MAX_HP
+player_hp_vis = ai_hp_vis = MAX_HP
+
+player_score = ai_score = 0
+player_combo = ai_combo = 0
+
 player_move = "?"
-pc_move = None
-result = ""
-confidence = 0.0
+ai_move = None
+confidence = 0
+
 countdown = 0
-countdown_start = None
-locked_player_move = None
+countdown_start = 0
+locked_move = None
+round_done = False
+
+game_result = ""
+result_time = 0
+
 pred_buffer = deque(maxlen=5)
+shake_time = 0
+flash_color = None
 
 # =========================
-# ROI PER MODELLO (NON TOCCARE)
+# ROI / SCREEN
 # =========================
-ROI_W = 340
-ROI_H = 340
+ROI_W, ROI_H = 340, 340
+SCREEN_W, SCREEN_H = 425, 230
+SCREEN_Y = 220
+SCREEN_X_OFF = 213
 
-# =========================
-# FIT CAM NEL MONITOR (SOLO GRAFICA) - QUI RIFINISCI PIXEL-PER-PIXEL
-# =========================
-SCREEN_W = 360
-SCREEN_H = 260
-SCREEN_X_OFF = 0      # + destra / - sinistra
-SCREEN_Y = 140        # + giù / - su
+transform = transforms.Compose([
+    transforms.Resize((IMG_SIZE,IMG_SIZE)),
+    transforms.ToTensor(),
+    transforms.Normalize([0.5]*3,[0.5]*3)
+])
+
+def calc_damage(combo):
+    return DMG * 2 if combo >= 2 else DMG
 
 # =========================
 # LOOP
@@ -152,150 +152,148 @@ while True:
     if not ret:
         break
 
-    cam = cv2.flip(cam, 1)
-    h, w, _ = cam.shape
+    cam = cv2.flip(cam,1)
+    h,w,_ = cam.shape
 
-    # =========================
-    # ROI WEBCAM per il MODELLO (centrata e fissa)
-    # =========================
-    cy, cx = h // 2, w // 2
-    y1 = max(0, cy - ROI_H // 2)
-    y2 = min(h, cy + ROI_H // 2)
-    x1 = max(0, cx - ROI_W // 2)
-    x2 = min(w, cx + ROI_W // 2)
+    cy,cx = h//2, w//2
+    roi = cam[cy-ROI_H//2:cy+ROI_H//2, cx-ROI_W//2:cx+ROI_W//2]
+    roi = cv2.resize(roi,(ROI_W,ROI_H))
 
-    roi = cam[y1:y2, x1:x2]
-    roi = cv2.resize(roi, (ROI_W, ROI_H))
+    gray = cv2.cvtColor(roi,cv2.COLOR_BGR2GRAY)
+    _,th = cv2.threshold(gray,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+    img = transform(Image.fromarray(cv2.cvtColor(th,cv2.COLOR_GRAY2RGB))).unsqueeze(0).to(DEVICE)
 
-    # =========================
-    # MODEL (usa ROI, non la cam nel monitor)
-    # =========================
-    gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (5, 5), 0)
-    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-
-    img = transform(Image.fromarray(cv2.cvtColor(thresh, cv2.COLOR_GRAY2RGB))).unsqueeze(0).to(DEVICE)
-
-    if countdown == 0:
+    if countdown==0 and game_result=="":
         with torch.no_grad():
-            probs = F.softmax(model(img), dim=1)[0]
+            probs = F.softmax(model(img),1)[0]
             pred = torch.argmax(probs).item()
             confidence = probs[pred].item()
             pred_buffer.append(CLASSES[pred])
-            player_move = max(set(pred_buffer), key=pred_buffer.count)
+            player_move = max(set(pred_buffer),key=pred_buffer.count)
 
-    # =========================
-    # INPUT
-    # =========================
-    key = cv2.waitKey(1) & 0xFF
-    if key == ord(" ") and countdown == 0:
-        countdown = 3
-        countdown_start = time.time()
-        locked_player_move = player_move
+    key = cv2.waitKey(1)&0xFF
+    if key==ord(" ") and countdown==0 and game_result=="":
+        snd_click.play()
+        countdown=3
+        countdown_start=time.time()
+        locked_move=player_move
         pred_buffer.clear()
-        pc_move = None
-        result = ""
+        round_done=False
 
-    if key == ord("q"):
+    if key==ord("q"):
         break
 
-    # =========================
-    # COUNTDOWN
-    # =========================
-    if countdown > 0 and time.time() - countdown_start >= 1:
-        countdown -= 1
-        countdown_start = time.time()
+    if countdown>0 and time.time()-countdown_start>=1:
+        countdown-=1
+        countdown_start=time.time()
+        snd_count.play()
 
-        if countdown == 0:
-            pc_move = random.choice(CLASSES)
-            result = decide_winner(locked_player_move, pc_move)
+        if countdown==0 and not round_done:
+            ai_move=random.choice(CLASSES)
+            win=decide_round(locked_move,ai_move)
 
-            if result == "HAI VINTO":
-                player_score += 1
-            elif result == "HAI PERSO":
-                pc_score += 1
+            if win=="PLAYER":
+                player_combo += 1
+                ai_combo = 0
+                ai_hp = max(0, ai_hp - calc_damage(player_combo))
+                snd_hit_ai.play()
+                flash_color=(0,255,0)
+                shake_time=time.time()
 
-            locked_player_move = None
-            pred_buffer.clear()
+            elif win=="AI":
+                ai_combo += 1
+                player_combo = 0
+                player_hp = max(0, player_hp - calc_damage(ai_combo))
+                snd_hit_player.play()
+                flash_color=(0,0,255)
+                shake_time=time.time()
 
-    # =========================
-    # COMPOSIZIONE SCENA (BG)
-    # =========================
-    frame = cv2.resize(bg_img, (w, h))
+            else:
+                player_combo = 0
+                ai_combo = 0
 
-    # =========================
-    # CAM FITTATA NEL MONITOR (solo grafica)
-    # =========================
-    SCREEN_X = (w - SCREEN_W) // 2 + SCREEN_X_OFF
+            round_done=True
 
-    cam_screen = cv2.resize(roi, (SCREEN_W, SCREEN_H))
-    # safe clamp per evitare crash se sfori
-    sx1 = max(0, SCREEN_X)
-    sy1 = max(0, SCREEN_Y)
-    sx2 = min(w, SCREEN_X + SCREEN_W)
-    sy2 = min(h, SCREEN_Y + SCREEN_H)
+            if ai_hp==0:
+                player_score+=1
+                snd_win.play()
+                game_result="HAI VINTO"
+                result_time=time.time()
 
-    cam_crop = cam_screen[0:(sy2 - sy1), 0:(sx2 - sx1)]
-    frame[sy1:sy2, sx1:sx2] = cam_crop
+            elif player_hp==0:
+                ai_score+=1
+                snd_lose.play()
+                game_result="HAI PERSO"
+                result_time=time.time()
 
-    # =========================
-    # HUD ALTO SINISTRA (MOSSA + CONFIDENCE)
-    # =========================
-    HUD_X = 40
-    HUD_Y = 50
-
-    show_move = locked_player_move if locked_player_move else player_move
-    draw_text(frame, f"Tu: {show_move}", (HUD_X, HUD_Y), 1.0, (0,255,0), 2)
-
-    if countdown == 0:
-        if confidence < 0.5:
-            bar_color = (0,0,200)
-        elif confidence < 0.75:
-            bar_color = (0,200,200)
-        else:
-            bar_color = (0,200,0)
-
-        bar_w = 200
-        bar_h = 10
-        bar_y = HUD_Y + 25
-
-        cv2.rectangle(frame, (HUD_X, bar_y), (HUD_X + bar_w, bar_y + bar_h), (70,70,70), -1)
-        cv2.rectangle(frame, (HUD_X, bar_y), (HUD_X + int(bar_w * confidence), bar_y + bar_h), bar_color, -1)
-
-        draw_text(frame, f"{int(confidence*100)}%", (HUD_X + bar_w + 10, bar_y + 10), 0.55, (220,220,220), 1)
+    if game_result!="" and time.time()-result_time>2.5:
+        player_hp=ai_hp=MAX_HP
+        player_hp_vis=ai_hp_vis=MAX_HP
+        player_combo=ai_combo=0
+        game_result=""
+        ai_move=None
 
     # =========================
-    # AI + RISULTATO (sotto HUD)
+    # HP SMOOTH
     # =========================
-    if pc_move:
-        draw_text(frame, f"AI: {pc_move}", (HUD_X, HUD_Y + 70), 1.0, (255,80,80), 2)
-        draw_text(frame, result, (HUD_X, HUD_Y + 105), 1.2, (255,220,120), 2)
+    player_hp_vis += (player_hp-player_hp_vis)*HP_LERP_SPEED
+    ai_hp_vis += (ai_hp-ai_hp_vis)*HP_LERP_SPEED
 
     # =========================
-    # COUNTDOWN AL CENTRO DEL MONITOR
+    # RENDER
     # =========================
-    if countdown > 0:
-        draw_text(frame, str(countdown),
-                  (SCREEN_X + SCREEN_W//2 - 20, SCREEN_Y + SCREEN_H//2 + 15),
-                  3, (255,0,0), 4)
+    frame=cv2.resize(bg,(w,h))
 
-    # =========================
-    # SCORE SOPRA IL MONITOR
-    # =========================
-    draw_text(frame,
-              f"{player_score} : {pc_score}",
-              (SCREEN_X + SCREEN_W//2 - 40, SCREEN_Y - 20),
-              1.2, (255,255,255), 2)
+    dx=dy=0
+    if time.time()-shake_time<0.25:
+        dx=np.random.randint(-6,7)
+        dy=np.random.randint(-6,7)
 
-    # =========================
-    # COMANDI SOTTO LA TASTIERA
-    # =========================
-    draw_text(frame, "SPAZIO = Gioca   Q = Esci", (SCREEN_X + 40, h - 30), 0.6, (220,220,220), 1)
+    sx=(w-SCREEN_W)//2+SCREEN_X_OFF+dx
+    sy=SCREEN_Y+dy
+    frame[sy:sy+SCREEN_H, sx:sx+SCREEN_W]=cv2.resize(roi,(SCREEN_W,SCREEN_H))
 
-    cv2.imshow(WINDOW_NAME, frame)
+    # HUD
+    draw_text(frame,f"Tu: {player_move}",(40,45),1,(0,255,0),2)
 
-# =========================
-# CLEANUP
-# =========================
+    cv2.rectangle(frame,(40,65),(240,75),(70,70,70),-1)
+    cv2.rectangle(frame,(40,65),(40+int(200*confidence),75),(0,200,0),-1)
+
+    if ai_move:
+        draw_text(frame,f"AI: {ai_move}",(40,105),1,(255,80,80),2)
+
+    # PLAYER HP
+    draw_text(frame,"HP",(40,135),0.6)
+    cv2.rectangle(frame,(40,140),(240,156),(60,60,60),-1)
+    cv2.rectangle(frame,(40,140),(40+int(200*player_hp_vis/MAX_HP),156),(0,200,0),-1)
+
+    # AI HP (ROSSA)
+    draw_text(frame,"AI HP",(w-240,135),0.6)
+    cv2.rectangle(frame,(w-240,140),(w-40,156),(60,60,60),-1)
+    cv2.rectangle(frame,(w-240,140),(w-240+int(200*ai_hp_vis/MAX_HP),156),(0,0,200),-1)
+
+    # COMBO HUD
+    if player_combo>=2:
+        draw_text(frame,"COMBO x2!",(40,180),0.7,(255,215,0),2)
+    if ai_combo>=2:
+        draw_text(frame,"AI COMBO x2!",(w-240,180),0.7,(255,80,80),2)
+
+    draw_text(frame,f"{player_score} : {ai_score}",(sx+SCREEN_W//2-40,sy-20),1.2)
+
+    if countdown>0:
+        draw_text(frame,str(countdown),(sx+SCREEN_W//2-20,sy+SCREEN_H//2),3,(255,0,0),4)
+
+    if game_result!="":
+        draw_text(frame,game_result,(sx+80,sy+SCREEN_H//2),1.6,(255,220,120),3)
+
+    draw_text(frame,"SPAZIO = Gioca   Q = Esci",(sx+40,h-30),0.6)
+
+    if flash_color and time.time()-shake_time<0.15:
+        overlay=frame.copy()
+        overlay[:]=flash_color
+        cv2.addWeighted(overlay,0.18,frame,0.82,0,frame)
+
+    cv2.imshow("Rock Paper Scissors",frame)
+
 cap.release()
 cv2.destroyAllWindows()
