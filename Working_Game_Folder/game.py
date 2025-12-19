@@ -20,7 +20,7 @@ CLASSES = ["rock", "paper", "scissors"]
 # PATH MODELLO
 # =========================
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "src", "NON CANCELLARE.pth")
+MODEL_PATH = os.path.join(BASE_DIR, "Working_Game_Folder", "GAG_RPS_Model.pth")
 
 # =========================
 # MODELLO
@@ -145,8 +145,11 @@ while True:
     if countdown == 0:
         with torch.no_grad():
             outputs = model(img)
-            pred = torch.argmax(outputs, dim=1).item()
+            probs = F.softmax(outputs, dim=1)[0]
+            pred = torch.argmax(probs).item()
+            confidence = probs[pred].item()
             raw_move = CLASSES[pred]
+
 
         pred_buffer.append(raw_move)
         player_move = max(set(pred_buffer), key=pred_buffer.count)
@@ -185,43 +188,129 @@ while True:
                 pc_score += 1
                 
             locked_player_move = None
+    # =========================
+    # OSCURA TUTTO FUORI DALLA ROI
+    # =========================
 
-    # ---------- UI PANEL ----------
-    overlay = frame.copy()
-    cv2.rectangle(overlay, (0, 0), (340, 170), (0, 0, 0), -1)
-    cv2.addWeighted(overlay, 0.4, frame, 0.6, 0, frame)
+    mask = frame.copy()
 
-    # ---------- ROI BOX ----------
+    # area sopra la ROI
+    cv2.rectangle(mask,
+        (0, 0),
+        (w, cy - size // 2),
+        (0, 0, 0), -1)
+
+    # area sotto la ROI
+    cv2.rectangle(mask,
+        (0, cy + size // 2),
+        (w, h),
+        (0, 0, 0), -1)
+
+    # area sinistra della ROI
+    cv2.rectangle(mask,
+        (0, cy - size // 2),
+        (cx - size // 2, cy + size // 2),
+        (0, 0, 0), -1)
+
+    # area destra della ROI
+    cv2.rectangle(mask,
+        (cx + size // 2, cy - size // 2),
+        (w, cy + size // 2),
+        (0, 0, 0), -1)
+
+    # applica oscuramento (regola alpha se vuoi più/meno buio)
+    cv2.addWeighted(mask, 1, frame, 0.35, 0, frame)
+
+    # =========================
+    # UI + ROI FISSA (COMPATTA)
+    # =========================
+
+    # ---- COLORE BOX IN BASE ALLA GESTURE ----
+    box_color = {
+        "rock": (0, 0, 255),
+        "paper": (0, 255, 0),
+        "scissors": (255, 0, 0)
+    }.get(player_move, (255, 255, 255))
+
+    # ---- ROI BOX CENTRALE (FISSA) ----
     cv2.rectangle(frame,
         (cx - size // 2, cy - size // 2),
         (cx + size // 2, cy + size // 2),
-        (0, 255, 0), 2
+        box_color, 2
     )
 
-    # ---------- TESTI ----------
-    move_to_show = locked_player_move if locked_player_move else player_move
-    draw_text(frame, f"Tu: {move_to_show}", (15, 40),
-              scale=1, color=(0,255,0))
+    # ---- PANNELLO UI RIDOTTO (ALTO SINISTRA) ----
+    overlay = frame.copy()
+    cv2.rectangle(overlay, (0, 0), (240, 105), (0, 0, 0), -1)
+    cv2.addWeighted(overlay, 0.35, frame, 0.65, 0, frame)
 
-    draw_text(frame,
-        "SPAZIO = Gioca | Q = Esci",
-        (cx - size//2, cy + size//2 + 40),
-        scale=0.8, color=(255,255,255))
+    # ---- TESTI ----
+    move_to_show = locked_player_move if locked_player_move else player_move
+
+    draw_text(frame, f"Tu: {move_to_show}",
+            (15, 28),
+            scale=0.8,
+            color=(0,255,0),
+            thickness=2)
 
     if pc_move:
-        draw_text(frame, f"PC: {pc_move}", (15, 80),
-                  scale=1, color=(255,0,0))
+        draw_text(frame, f"PC: {pc_move}",
+                (15, 52),
+                scale=0.75,
+                color=(255,0,0),
+                thickness=2)
 
         res_color = (0,255,0) if result == "HAI VINTO" else \
                     (0,0,255) if result == "HAI PERSO" else (0,255,255)
 
-        draw_text(frame, result, (15, 120),
-                  scale=1.3, color=res_color, thickness=3)
+        draw_text(frame, result,
+                (15, 78),
+                scale=1.0,
+                color=res_color,
+                thickness=2)
+
+    # ---- CONFIDENCE BAR (PICCOLA) ----
+    bar_x, bar_y = 15, 88
+    bar_width = 140
+    bar_height = 8
+
+    filled = int(bar_width * confidence)
+
+    cv2.rectangle(frame,
+        (bar_x, bar_y),
+        (bar_x + bar_width, bar_y + bar_height),
+        (70, 70, 70), -1)
+
+    cv2.rectangle(frame,
+        (bar_x, bar_y),
+        (bar_x + filled, bar_y + bar_height),
+        (0, 255, 0), -1)
 
     draw_text(frame,
-        f"Score  Tu {player_score} - {pc_score} PC",
-        (15, h - 20),
-        scale=0.9, color=(255,255,255))
+        f"{int(confidence * 100)}%",
+        (bar_x + bar_width + 8, bar_y + 9),
+        scale=0.45,
+        color=(200,200,200),
+        thickness=1)
+
+    # ---- COMANDI (RIDOTTI, SOTTO IL BOX) ----
+    draw_text(frame,
+        "SPAZIO = Gioca | Q = Esci",
+        (cx - size // 2, cy + size // 2 + 28),
+        scale=0.6,
+        color=(220,220,220),
+        thickness=1)
+
+    # ---- SCORE ----
+    draw_text(frame,
+        f"Score {player_score} : {pc_score}",
+        (15, h - 18),
+        scale=0.75,
+        color=(220,220,220),
+        thickness=1)
+
+
+
 
     cv2.imshow("Rock Paper Scissors", frame)
 
