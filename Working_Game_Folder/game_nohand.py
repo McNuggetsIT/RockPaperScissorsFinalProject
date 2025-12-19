@@ -15,6 +15,8 @@ from PIL import Image
 IMG_SIZE = 128
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 CLASSES = ["rock", "paper", "scissors"]
+CONF_THRESHOLD = 0.5  # soglia minima confidenza per considerare valida la mossa
+PIXEL_THRESHOLD = 0.05  # % pixel attivi minimi per considerare che ci sia mano
 
 # =========================
 # PATH
@@ -137,12 +139,12 @@ ROI_W = 340
 ROI_H = 340
 
 # =========================
-# FIT CAM NEL MONITOR (SOLO GRAFICA) - QUI RIFINISCI PIXEL-PER-PIXEL
+# FIT CAM NEL MONITOR (SOLO GRAFICA)
 # =========================
 SCREEN_W = 360
 SCREEN_H = 260
-SCREEN_X_OFF = 0      # + destra / - sinistra
-SCREEN_Y = 140        # + giù / - su
+SCREEN_X_OFF = 0
+SCREEN_Y = 140
 
 # =========================
 # LOOP
@@ -168,11 +170,14 @@ while True:
     roi = cv2.resize(roi, (ROI_W, ROI_H))
 
     # =========================
-    # MODEL (usa ROI, non la cam nel monitor)
+    # MODEL + DETECTION MANO
     # =========================
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (5, 5), 0)
     _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    # % di pixel attivi
+    pixel_ratio = (cv2.countNonZero(thresh) / (ROI_W * ROI_H))
 
     img = transform(Image.fromarray(cv2.cvtColor(thresh, cv2.COLOR_GRAY2RGB))).unsqueeze(0).to(DEVICE)
 
@@ -181,7 +186,13 @@ while True:
             probs = F.softmax(model(img), dim=1)[0]
             pred = torch.argmax(probs).item()
             confidence = probs[pred].item()
-            pred_buffer.append(CLASSES[pred])
+
+            # Se confidence bassa o pochi pixel attivi, consideriamo che non ci sia mano
+            if confidence < CONF_THRESHOLD or pixel_ratio < PIXEL_THRESHOLD:
+                pred_buffer.append("?")
+            else:
+                pred_buffer.append(CLASSES[pred])
+
             player_move = max(set(pred_buffer), key=pred_buffer.count)
 
     # =========================
@@ -227,14 +238,11 @@ while True:
     # CAM FITTATA NEL MONITOR (solo grafica)
     # =========================
     SCREEN_X = (w - SCREEN_W) // 2 + SCREEN_X_OFF
-
     cam_screen = cv2.resize(roi, (SCREEN_W, SCREEN_H))
-    # safe clamp per evitare crash se sfori
     sx1 = max(0, SCREEN_X)
     sy1 = max(0, SCREEN_Y)
     sx2 = min(w, SCREEN_X + SCREEN_W)
     sy2 = min(h, SCREEN_Y + SCREEN_H)
-
     cam_crop = cam_screen[0:(sy2 - sy1), 0:(sx2 - sx1)]
     frame[sy1:sy2, sx1:sx2] = cam_crop
 
@@ -247,7 +255,7 @@ while True:
     show_move = locked_player_move if locked_player_move else player_move
     draw_text(frame, f"Tu: {show_move}", (HUD_X, HUD_Y), 1.0, (0,255,0), 2)
 
-    if countdown == 0:
+    if countdown == 0 and show_move != "?":
         if confidence < 0.5:
             bar_color = (0,0,200)
         elif confidence < 0.75:
@@ -258,10 +266,8 @@ while True:
         bar_w = 200
         bar_h = 10
         bar_y = HUD_Y + 25
-
         cv2.rectangle(frame, (HUD_X, bar_y), (HUD_X + bar_w, bar_y + bar_h), (70,70,70), -1)
         cv2.rectangle(frame, (HUD_X, bar_y), (HUD_X + int(bar_w * confidence), bar_y + bar_h), bar_color, -1)
-
         draw_text(frame, f"{int(confidence*100)}%", (HUD_X + bar_w + 10, bar_y + 10), 0.55, (220,220,220), 1)
 
     # =========================
