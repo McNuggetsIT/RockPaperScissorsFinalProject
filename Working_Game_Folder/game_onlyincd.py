@@ -234,7 +234,6 @@ while True:
     if reset_timer is not None and time.time() - reset_timer >= 2:
         locked_player_move = None
         pc_move = None
-        result = ""
         player_move = "?"
         confidence = 0.0
         reset_timer = None
