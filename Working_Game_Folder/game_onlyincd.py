@@ -253,8 +253,12 @@ while True:
     frame[sy1:sy2, sx1:sx2] = cam_crop
 
     HUD_X, HUD_Y = 40, 50
-    show_move = locked_player_move if locked_player_move else player_move
-    draw_text(frame, f"Tu: {show_move}", (HUD_X, HUD_Y), 1.0, (0,255,0), 2)
+    # MOSTRA SEMPRE "Tu: ?" FINCHÉ IL COUNTDOWN NON È FINITO
+    if locked_player_move is not None and countdown == 0:
+        draw_text(frame, f"Tu: {locked_player_move}", (HUD_X, HUD_Y), 1.0, (0,255,0), 2)
+    else:
+        draw_text(frame, "Tu: ?", (HUD_X, HUD_Y), 1.0, (0,255,0), 2)
+
 
     if countdown > 0:
         bar_color = (0,200,0) if confidence >= 0.75 else (0,200,200) if confidence >= 0.5 else (0,0,200)
