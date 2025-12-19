@@ -14,8 +14,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # =========================
 # AUDIO AUTO-GENERATO (FIX STEREO)
 # =========================
-import pygame
-import numpy as np
 
 pygame.mixer.init(frequency=44100, size=-16, channels=2)
 
