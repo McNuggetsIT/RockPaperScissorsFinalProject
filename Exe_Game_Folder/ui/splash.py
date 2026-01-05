@@ -14,7 +14,6 @@ def show_splash(window_name, splash_path, logo_path, size=(1280,720)):
     cv2.waitKey(1)
     time.sleep(2.0)
 
-    # dissolve splash → logo
     for a in np.linspace(0, 1, 30):
         frame = cv2.addWeighted(splash, 1-a, logo, a, 0)
         cv2.imshow(window_name, frame)

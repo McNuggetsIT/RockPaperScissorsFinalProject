@@ -31,13 +31,13 @@ credits = [
 def run_menu():
     idx = 0
 
-    # ✅ CARICA UNA SOLA VOLTA
+
     menu_bg = cv2.imread(MENU_BG_PATH)
     if menu_bg is None:
         raise FileNotFoundError(f"Menu background non trovato: {MENU_BG_PATH}")
 
     while True:
-        # ✅ USA menu.png
+
         frame = cv2.resize(menu_bg, (1280, 720))
 
         draw_text(
