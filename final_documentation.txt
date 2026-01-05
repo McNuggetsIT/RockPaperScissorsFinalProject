@@ -92,6 +92,7 @@ Grazie a queste caratteristiche, PyTorch si è dimostrato uno strumento efficace
 Per utilizzare il programma è sufficiente avviare l'eseguibile e posizionare la mano nel riquadro corretto, successivamente cliccare il tasto in sovraimpressione per avviare o chiudere il programma.
 
 ------ Risultati finali:
+Utilizzando anche Pygame si è creato un gioco interattivo funzionante per fare carta, sasso, forbice contro l'IA. Il riconoscimento della mano attualmente è influenzato anche dal background. Presenta margini di miglioramento ed ottimizzazione future.
 
 ------ Problemi riscontrati: 
 Nonostante l'alta accuracy durante il training, nell'utilizzo reale ogni tanto si confonde sulla mano associata
