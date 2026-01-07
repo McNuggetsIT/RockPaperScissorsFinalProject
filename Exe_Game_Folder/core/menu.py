@@ -16,16 +16,18 @@ credits = [
     "GAG - Rock Paper Scissors",
     "",
     "Game Design & Code:",
-    " - TU",
+    " - Giuseppe D'Avanzo",
+    " - Giorgio De Nigris"
     "",
     "AI:",
     " - PyTorch CNN",
+    " - Antonio Brescia",
     "",
     "Audio:",
     " - Procedural FX",
     "",
-    "Powered by Python"
 ]
+
 
 
 def run_menu():
