@@ -13,6 +13,7 @@ I membri del gruppo si sono allineati con le versioni di python e delle librerie
 
 Per l’addestramento del modello di classificazione Rock–Paper–Scissors sono stati utilizzati due dataset distinti, entrambi scaricati dalla piattaforma Kaggle, successivamente uniti in un unico dataset finale.
 La scelta di combinare due sorgenti diverse è stata fatta per aumentare la varietà delle immagini e rendere il modello più robusto rispetto alle condizioni reali.
+
 ----------------------
 Come è composto:
 Il dataset finale comprende tre classi principali:
@@ -95,7 +96,8 @@ Per utilizzare il programma è sufficiente avviare l'eseguibile e posizionare la
 Utilizzando anche Pygame si è creato un gioco interattivo funzionante per fare carta, sasso, forbice contro l'IA. Il riconoscimento della mano attualmente è influenzato anche dal background. Presenta margini di miglioramento ed ottimizzazione future.
 
 ------ Problemi riscontrati: 
-Nonostante l'alta accuracy durante il training, nell'utilizzo reale ogni tanto si confonde sulla mano associata
+Nonostante l'alta accuracy durante il training, nell'utilizzo reale ogni tanto si confonde sulla mano associata.
+Abbiamo provato tantissimi modelli di training e dataset diversi, sia in quantità di foto ed elementi "da studiare ed imparare" ma anche in qualità delle fote con meno o piu' rumore.
 
 ------ Possibili sviluppi futuri: 
 Riuscire ad addestrare il modello su dati creati in maniera personale e successivamente ottenere una buona accuracy durante l'utilizzo.
@@ -109,6 +111,6 @@ Nonostante gli ottimi risultati ottenuti il progetto presenta alcune limitazioni
 
 - si può generare facilmente overfitting, le immagini risultanti dalla telecamera potrebbero essere molto diverse rispetto a quelle nel dataset risultando in alcuni casi in una diminuzione dell'accuracy.
 
-Inoltre il modello non è stato testato su un ampio numero di utenti reali, limitando la valutazione delle prestazioni in scenari d’uso reali.
+- Inoltre il modello non è stato testato su un ampio numero di utenti reali, limitando la valutazione delle prestazioni in scenari d’uso reali.
 
-Tali limiti suggeriscono la necessità di ulteriori sviluppi, come l’espansione del dataset, l’uso di architetture più avanzate e l’ottimizzazione per l’esecuzione in tempo reale.
+- Tali limiti suggeriscono la necessità di ulteriori sviluppi, come l’espansione del dataset, l’uso di architetture più avanzate e l’ottimizzazione per l’esecuzione in tempo reale.
